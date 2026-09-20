@@ -69,10 +69,14 @@ person looking for a home, and the request volume should look exactly like that.
 
 ## Cold start
 
-Prereqs: **Node ≥ 20.12** (developed on 24), npm.
+Prereqs: **Node ≥ 20.12** (developed on 24), npm. Works the same on **macOS,
+Windows and Linux** — on Windows use PowerShell or cmd, install Node from
+[nodejs.org](https://nodejs.org) (or `winget install OpenJS.NodeJS.LTS`);
+`better-sqlite3` ships prebuilt binaries, so no compiler is needed.
 
 ```bash
-git clone <your-repo-url> Realtor && cd Realtor
+git clone https://github.com/hayk-net/valencia-apartment-finder.git Realtor
+cd Realtor
 npm install            # installs web/ dependencies too (postinstall)
 npm run dev            # API on :4000, app on http://localhost:5173
 ```
@@ -119,10 +123,14 @@ Without any `.env` the app is fully functional — the AI button just stays disa
 | `npm test` | test suite (English parser, Spanish floor grammar, gem ranking, value stats) |
 | `npm run mcp` | MCP server — placeholder; it's a learning project built by hand |
 
-## Always-on hosting (macOS)
+## Always-on hosting
 
-Run it permanently with launchd so the app is just *there* at a fixed port, refreshing
-itself. Create `~/Library/LaunchAgents/com.<you>.valencia-finder.plist`:
+Run it permanently so the app is just *there* at a fixed port (http://localhost:4321),
+starting with your machine and refreshing its own data. Pick your OS:
+
+### macOS (launchd)
+
+Create `~/Library/LaunchAgents/com.<you>.valencia-finder.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -157,6 +165,39 @@ launchctl bootout gui/$(id -u)/com.you.valencia-finder
 Two optional sibling agents keep data fresh by calling the server's own API on a
 schedule (single DB writer, no contention) — `StartCalendarInterval` + `curl -X POST
 http://localhost:4321/api/refresh` daily, and `…/api/sync` weekly.
+
+### Windows (Task Scheduler)
+
+The repo bundles `scripts\windows\start-server.cmd` — a wrapper that sets the working
+directory (Task Scheduler can't) and logs to `data\logs\server.log`. From a terminal
+**in the repo root**:
+
+```bat
+npm run build
+
+:: server at every logon (starts it now too):
+schtasks /Create /TN "Valencia Finder" /TR "\"%CD%\scripts\windows\start-server.cmd\"" /SC ONLOGON /F
+schtasks /Run /TN "Valencia Finder"
+
+:: fresh data daily at 09:30 + full sync Sundays 08:00 (curl ships with Windows 10+):
+schtasks /Create /TN "Valencia Finder Refresh" /TR "curl -s -X POST http://localhost:4321/api/refresh" /SC DAILY /ST 09:30 /F
+schtasks /Create /TN "Valencia Finder Sync" /TR "curl -s -X POST http://localhost:4321/api/sync" /SC WEEKLY /D SUN /ST 08:00 /F
+```
+
+```bat
+:: after code changes:
+npm run build && schtasks /End /TN "Valencia Finder" && schtasks /Run /TN "Valencia Finder"
+
+:: uninstall:
+schtasks /Delete /TN "Valencia Finder" /F
+schtasks /Delete /TN "Valencia Finder Refresh" /F
+schtasks /Delete /TN "Valencia Finder Sync" /F
+```
+
+Notes: the logon task briefly opens a console window — hide it by opening Task
+Scheduler → the task → *"Run whether user is logged on or not"*. If you prefer a
+managed process with auto-restart, `npm i -g pm2 pm2-windows-startup` does the same
+job (`pm2 start dist/server/index.js --name valencia -- --port 4321`).
 
 ## Architecture
 

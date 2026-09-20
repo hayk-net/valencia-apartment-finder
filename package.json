@@ -9,7 +9,7 @@
     "dev": "concurrently -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "tsx watch src/server/index.ts",
     "dev:web": "npm --prefix web run dev",
-    "build": "tsc && cp src/db/schema.sql dist/db/schema.sql && npm --prefix web run build",
+    "build": "tsc && node -e \"require('fs').cpSync('src/db/schema.sql','dist/db/schema.sql')\" && npm --prefix web run build",
     "start": "node dist/server/index.js",
     "refresh": "tsx src/ingest/cli.ts",
     "seed": "tsx src/ingest/seed.ts",
