@@ -1,0 +1,17 @@
+node_modules/
+dist/
+web/dist/
+
+# local data — the DB is rebuilt by syncing, never committed
+data/*.db
+data/*.db-*
+data/cache/
+data/logs/
+*.log
+
+# secrets
+.env
+
+# local tooling
+.claude/settings.local.json
+.DS_Store
