@@ -485,7 +485,7 @@ export default function App() {
               {display === 'map'
                 ? mapBusy
                   ? 'Loading map…'
-                  : `${mapItems.length.toLocaleString('es-ES')} on map · ${mapItems.filter((l) => l.lat == null).length} ≈ approximate`
+                  : `${mapItems.length.toLocaleString('es-ES')} matching`
                 : busy
                   ? 'Searching…'
                   : `${results.total.toLocaleString('es-ES')} listings`}
@@ -520,7 +520,15 @@ export default function App() {
             </span>
           </div>
 
-          {display === 'map' && <MapView items={mapItems} />}
+          {display === 'map' && (
+            <MapView
+              items={mapItems}
+              onAreaFilter={(name) => {
+                setDisplayMode('list');
+                applyFilters({ ...filters, neighborhoods: [name] });
+              }}
+            />
+          )}
 
           {display === 'list' && (busy && results.items.length === 0 ? (
             <div className="grid">

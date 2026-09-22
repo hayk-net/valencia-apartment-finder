@@ -2,8 +2,13 @@ import type { Listing } from './types';
 
 /**
  * Approximate centroids for Valencia barrios & metro municipalities.
- * Used to place listings WITHOUT real GPS coordinates on the map — the marker
- * is styled as "≈ approximate" so it's never mistaken for an exact pin.
+ *
+ * Placement honesty rules:
+ *  - real GPS → exact pin
+ *  - known barrio / metro town → grouped into ONE area bubble at its centroid
+ *    (never individual fake positions)
+ *  - only "Valencia" (city-level) → NOT mapped at all; a city-center pile of
+ *    markers is a lie. Those listings stay in the list view.
  */
 const CENTROIDS: Record<string, [number, number]> = {
   // city center / old town
@@ -44,6 +49,8 @@ const CENTROIDS: Record<string, [number, number]> = {
   campanar: [39.483, -0.398],
   'pla del real': [39.478, -0.36],
   exposicio: [39.48, -0.363],
+  trinitat: [39.482, -0.371],
+  'sant antoni': [39.486, -0.372],
   // east / maritime
   mestalla: [39.474, -0.358],
   algiros: [39.474, -0.342],
@@ -54,12 +61,16 @@ const CENTROIDS: Record<string, [number, number]> = {
   'cami fondo': [39.464, -0.351],
   'ciutat jardi': [39.472, -0.348],
   'la creu del grau': [39.46, -0.343],
+  'la carrasca': [39.478, -0.34],
+  'illa perduda': [39.47, -0.339],
   cabanyal: [39.4697, -0.326],
   malvarrosa: [39.479, -0.3253],
   'poblats maritims': [39.462, -0.329],
+  'el grau': [39.458, -0.331],
   betero: [39.476, -0.335],
   natzaret: [39.447, -0.332],
   'la punta': [39.444, -0.348],
+  'ciutat de les arts': [39.457, -0.352],
   // south
   patraix: [39.457, -0.396],
   jesus: [39.456, -0.386],
@@ -73,9 +84,10 @@ const CENTROIDS: Record<string, [number, number]> = {
   'en corts': [39.455, -0.37],
   malilla: [39.446, -0.376],
   'na rovella': [39.455, -0.356],
+  'la fonteta': [39.451, -0.352],
   'la torre': [39.427, -0.387],
-  // metro municipalities
-  valencia: [39.4699, -0.3763],
+  favara: [39.459, -0.392],
+  // metro municipalities (legitimate area-level placement)
   alboraya: [39.5, -0.352],
   patacona: [39.485, -0.323],
   mislata: [39.475, -0.418],
@@ -107,30 +119,39 @@ function norm(s: string): string {
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/^(el|la|els|les|los|las|l'|barrio de|barri de)\s+/, '')
+    .replace(/^(el|la|els|les|los|las|l'|l |barrio de|barri de)\s*/, '')
     .trim();
 }
 
-function lookup(name: string | null): [number, number] | null {
+function lookupKey(name: string | null): string | null {
   if (!name) return null;
   const n = norm(name);
-  if (CENTROIDS[n]) return CENTROIDS[n];
-  // partial match ("Sant Llorenç - Zona Alfahuir", "Barrio de Benicalap")
+  if (!n) return null;
+  if (CENTROIDS[n]) return n;
   for (const key of Object.keys(CENTROIDS)) {
-    if (key.length > 4 && n.includes(key)) return CENTROIDS[key];
+    if (key.length > 4 && (n.includes(key) || key.includes(n))) return key;
   }
   return null;
 }
 
-/** Deterministic small scatter so same-area listings don't stack on one point. */
-function jitter(id: number, salt: number): number {
-  const x = Math.sin(id * 127.1 + salt * 311.7) * 43758.5453;
-  return (x - Math.floor(x) - 0.5) * 0.006; // ≈ ±330 m
-}
+export type MapPos =
+  | { kind: 'exact'; lat: number; lng: number }
+  | { kind: 'area'; key: string; lat: number; lng: number }
+  | { kind: 'none' };
 
-export function approxCoords(l: Listing): { lat: number; lng: number; approx: boolean } | null {
-  if (l.lat != null && l.lng != null) return { lat: l.lat, lng: l.lng, approx: false };
-  const base = lookup(l.neighborhood) ?? lookup(l.municipality);
-  if (!base) return null;
-  return { lat: base[0] + jitter(l.id, 1), lng: base[1] + jitter(l.id, 2), approx: true };
+export function resolveMapPos(l: Listing): MapPos {
+  if (l.lat != null && l.lng != null) return { kind: 'exact', lat: l.lat, lng: l.lng };
+  const byBarrio = lookupKey(l.neighborhood);
+  if (byBarrio) {
+    const [lat, lng] = CENTROIDS[byBarrio];
+    return { kind: 'area', key: byBarrio, lat, lng };
+  }
+  // municipality-level is fine for metro towns, but "Valencia" alone is too
+  // coarse — a giant city-center bubble would be exactly the mess we removed
+  const mun = l.municipality && norm(l.municipality) !== 'valencia' ? lookupKey(l.municipality) : null;
+  if (mun) {
+    const [lat, lng] = CENTROIDS[mun];
+    return { kind: 'area', key: mun, lat, lng };
+  }
+  return { kind: 'none' };
 }
