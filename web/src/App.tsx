@@ -3,6 +3,7 @@ import { api } from './api';
 import { filtersToChips } from './chips';
 import { FilterPanel } from './components/FilterPanel';
 import { ListingCard } from './components/ListingCard';
+import { MapView } from './components/MapView';
 import { Sidebar } from './components/Sidebar';
 import type { AiStatus, Filters, Listing, SavedSearch, SortKey, Stats } from './types';
 
@@ -46,6 +47,15 @@ export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [active, setActive] = useState<{ id: number; newSince: string | null } | null>(null);
   const [view, setView] = useState<'all' | 'fav' | 'hidden'>('all');
+  const [display, setDisplay] = useState<'list' | 'map'>(() => {
+    try {
+      return localStorage.getItem('realtor.display') === 'map' ? 'map' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  const [mapItems, setMapItems] = useState<Listing[]>([]);
+  const [mapBusy, setMapBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [busyMore, setBusyMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -174,6 +184,35 @@ export default function App() {
     }
     void runSearch(currentFilters(), s);
   };
+
+  const setDisplayMode = (d: 'list' | 'map') => {
+    setDisplay(d);
+    try {
+      localStorage.setItem('realtor.display', d);
+    } catch {
+      /* fine */
+    }
+  };
+
+  // the map shows the WHOLE matching set (slim payload), not just one page
+  useEffect(() => {
+    if (display !== 'map') return;
+    let stale = false;
+    setMapBusy(true);
+    api
+      .mapSearch(view === 'fav' ? FAV_FILTERS : view === 'hidden' ? HIDDEN_FILTERS : filters)
+      .then((r) => {
+        if (!stale) setMapItems(r.items);
+      })
+      .catch((e) => setError(`Map load failed: ${(e as Error).message}`))
+      .finally(() => {
+        if (!stale) setMapBusy(false);
+      });
+    return () => {
+      stale = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [display, filters, view]);
 
   const showFavorites = () => {
     setView('fav');
@@ -415,7 +454,11 @@ export default function App() {
                 </button>
               </div>
 
-              <FilterPanel filters={filters} onChange={applyFilters} />
+              <FilterPanel
+                filters={filters}
+                sourcesAvailable={stats?.sourcesAvailable ?? []}
+                onChange={applyFilters}
+              />
 
               <div className="cats">
                 {(Object.keys(CATEGORY_LABELS) as Category[]).map((c) => (
@@ -439,21 +482,47 @@ export default function App() {
 
           <div className="toolbar">
             <span className="toolbar-count">
-              {busy ? 'Searching…' : `${results.total.toLocaleString('es-ES')} listings`}
+              {display === 'map'
+                ? mapBusy
+                  ? 'Loading map…'
+                  : `${mapItems.length.toLocaleString('es-ES')} on map · ${mapItems.filter((l) => l.lat == null).length} ≈ approximate`
+                : busy
+                  ? 'Searching…'
+                  : `${results.total.toLocaleString('es-ES')} listings`}
             </span>
-            <label className="toolbar-sort">
-              Sort
-              <select value={sort} onChange={(e) => handleSort(e.target.value as SortKey)}>
-                {Object.entries(SORT_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <span className="toolbar-right">
+              <span className="display-toggle">
+                <button
+                  className={display === 'list' ? 'on' : ''}
+                  onClick={() => setDisplayMode('list')}
+                >
+                  ☰ List
+                </button>
+                <button
+                  className={display === 'map' ? 'on' : ''}
+                  onClick={() => setDisplayMode('map')}
+                >
+                  🗺 Map
+                </button>
+              </span>
+              {display === 'list' && (
+                <label className="toolbar-sort">
+                  Sort
+                  <select value={sort} onChange={(e) => handleSort(e.target.value as SortKey)}>
+                    {Object.entries(SORT_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </span>
           </div>
 
-          {busy && results.items.length === 0 ? (
+          {display === 'map' && <MapView items={mapItems} />}
+
+          {display === 'list' && (busy && results.items.length === 0 ? (
             <div className="grid">
               {Array.from({ length: 6 }, (_, i) => (
                 <div key={i} className="card skeleton">
@@ -478,8 +547,8 @@ export default function App() {
                 />
               ))}
             </div>
-          )}
-          {!busy && results.items.length === 0 && (
+          ))}
+          {display === 'list' && !busy && results.items.length === 0 && (
             <div className="empty">
               <p>
                 {view === 'fav'
@@ -490,7 +559,7 @@ export default function App() {
               </p>
             </div>
           )}
-          {results.total > results.items.length && (
+          {display === 'list' && results.total > results.items.length && (
             <div className="load-more">
               <button className="btn" disabled={busyMore} onClick={loadMore}>
                 {busyMore ? 'Loading…' : `Load more (${results.items.length} of ${results.total.toLocaleString('es-ES')})`}

@@ -56,6 +56,26 @@ export const AREAS: Area[] = [
   { name: 'Orriols', variants: ['orriols'] },
   { name: 'Torrefiel', variants: ['torrefiel'] },
   { name: 'Benimàmet', variants: ['benimàmet', 'benimamet'] },
+  { name: 'Marxalenes', variants: ['marxalenes', 'marchalenes'] },
+  { name: 'Na Rovella', variants: ['na rovella'] },
+  { name: "L'Hort de Senabre", variants: ['hort de senabre'] },
+  { name: 'Ciutat Jardí', variants: ['ciutat jardí', 'ciutat jardi', 'ciudad jardín', 'ciudad jardin'] },
+  { name: 'La Creu del Grau', variants: ['creu del grau', 'cruz del grao'] },
+  { name: 'La Llum', variants: ['la llum', 'la luz'] },
+  { name: 'Sant Isidre', variants: ['sant isidre', 'san isidro'] },
+  { name: 'La Raïosa', variants: ['raïosa', 'raiosa'] },
+  { name: 'Safranar', variants: ['safranar'] },
+  { name: 'Natzaret', variants: ['natzaret', 'nazaret'] },
+  { name: 'La Punta', variants: ['la punta'] },
+  { name: 'Vara de Quart', variants: ['vara de quart'] },
+  { name: 'Beteró', variants: ['beteró', 'betero'] },
+  { name: 'Albors', variants: ['albors'] },
+  { name: 'Camí Fondo', variants: ['camí fondo', 'cami fondo'] },
+  { name: 'La Roqueta', variants: ['la roqueta'] },
+  { name: 'Sant Marcel·lí', variants: ['sant marcel·lí', 'sant marcelli', 'san marcelino'] },
+  { name: 'Tres Forques', variants: ['tres forques'] },
+  { name: 'La Fontsanta', variants: ['fontsanta'] },
+  { name: 'La Patacona', variants: ['patacona'] },
   // metro municipalities
   { name: 'Alboraya', variants: ['alboraya', 'alboraia'] },
   { name: 'Mislata', variants: ['mislata'] },
@@ -78,6 +98,19 @@ export const AREAS: Area[] = [
   { name: 'El Puig', variants: ['el puig'] },
   { name: 'Bétera', variants: ['bétera', 'betera'] },
   { name: 'La Cañada', variants: ['la cañada', 'la canyada'] },
+  { name: 'Sagunto', variants: ['sagunto', 'sagunt', 'puerto de sagunto'] },
+];
+
+/** Known listing sources — used by the parser for "only fotocasa" style queries. */
+export const SOURCE_NAMES = [
+  'fotocasa',
+  'habitaclia',
+  'idealista',
+  'thinkspain',
+  'viviendasnuevas',
+  'metrovacesa',
+  'ficsa',
+  'proyectos',
 ];
 
 /** Look up an area by any variant; returns canonical name or null. */

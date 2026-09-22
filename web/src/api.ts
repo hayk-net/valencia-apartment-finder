@@ -29,6 +29,13 @@ export const api = {
       body: JSON.stringify({ filters, sort, limit, offset }),
     }),
 
+  /** map mode: up to 1200 slim results (no descriptions) */
+  mapSearch: (filters: Filters) =>
+    json<{ items: Listing[]; total: number }>('/api/listings/search', {
+      method: 'POST',
+      body: JSON.stringify({ filters, sort: 'newest', limit: 1200, compact: true }),
+    }),
+
   setFavorite: (id: number, on: boolean) =>
     json<{ ok: boolean; on: boolean }>(`/api/listings/${id}/favorite`, {
       method: 'POST',

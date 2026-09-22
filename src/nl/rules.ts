@@ -1,5 +1,5 @@
 import type { Filters } from '../types.js';
-import { AREAS, FEATURES } from './vocab.js';
+import { AREAS, FEATURES, SOURCE_NAMES } from './vocab.js';
 
 /**
  * Rule-based parser for English apartment-search sentences, e.g.:
@@ -190,6 +190,16 @@ export function parseWithRules(text: string): Filters {
   }
   if (keywords.length > 0) f.keywords = keywords;
 
+  // ---- 6b. source filter ("only fotocasa", "habitaclia listings") ----
+  const sources: string[] = [];
+  for (const s of SOURCE_NAMES) {
+    if (new RegExp(String.raw`\b${s}\b`).test(t)) {
+      sources.push(s);
+      t = t.replace(new RegExp(String.raw`\b${s}\b`, 'g'), ' ');
+    }
+  }
+  if (sources.length > 0) f.sources = sources;
+
   // ---- 7. neighborhoods / municipalities (dictionary scan) ----
   const areas: string[] = [];
   for (const area of AREAS) {
@@ -202,12 +212,28 @@ export function parseWithRules(text: string): Filters {
   }
   if (areas.length > 0) f.neighborhoods = areas;
 
+  // unknown place after "in"/"en" — pass through for free-text LIKE matching
+  if (!f.neighborhoods) {
+    const m = t.match(/\b(?:in|en)\s+([a-zà-ÿñç·'. -]{3,35}?)\s*$/);
+    if (m && m[1].trim().length >= 3) f.neighborhoods = [m[1].trim()];
+  }
+
   // sanity: swap crossed ranges
   if (f.minRooms !== undefined && f.maxRooms !== undefined && f.minRooms > f.maxRooms) {
     [f.minRooms, f.maxRooms] = [f.maxRooms, f.minRooms];
   }
   if (f.minSqm !== undefined && f.maxSqm !== undefined && f.minSqm > f.maxSqm) {
     [f.minSqm, f.maxSqm] = [f.maxSqm, f.minSqm];
+  }
+
+  // nothing recognized at all? treat short plain text as a location/text search
+  // ("Carrer de Cullera", an unlisted barrio…) — matched via LIKE against
+  // neighborhood, municipality, address and title
+  if (Object.keys(f).length === 0) {
+    const orig = text.trim();
+    if (orig.length >= 3 && orig.length <= 40 && !/\d/.test(orig) && !/^(show|all|everything)/i.test(orig)) {
+      f.neighborhoods = [orig];
+    }
   }
   return f;
 }

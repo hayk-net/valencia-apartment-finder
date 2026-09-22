@@ -4,6 +4,7 @@ import type { Filters } from '../types';
 
 interface Props {
   filters: Filters;
+  sourcesAvailable: string[];
   onChange: (f: Filters) => void;
 }
 
@@ -12,10 +13,23 @@ function numOrUndef(v: string): number | undefined {
   return v.trim() === '' || Number.isNaN(n) ? undefined : n;
 }
 
-export function FilterPanel({ filters, onChange }: Props) {
+function parseList(s: string): string[] | undefined {
+  const items = s.split(',').map((x) => x.trim()).filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
+export function FilterPanel({ filters, sourcesAvailable, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Filters>(filters);
-  useEffect(() => setDraft(filters), [filters]);
+  // free-typed text lives in its own state and is parsed only on Apply —
+  // parsing per keystroke used to eat trailing commas and spaces as you typed
+  const [areasText, setAreasText] = useState('');
+  const [kwText, setKwText] = useState('');
+  useEffect(() => {
+    setDraft(filters);
+    setAreasText((filters.neighborhoods ?? []).join(', '));
+    setKwText((filters.keywords ?? []).join(', '));
+  }, [filters]);
 
   const chips = filtersToChips(filters);
 
@@ -87,16 +101,9 @@ export function FilterPanel({ filters, onChange }: Props) {
               Areas (comma-separated)
               <input
                 type="text"
-                placeholder="Russafa, Benimaclet…"
-                value={(draft.neighborhoods ?? []).join(', ')}
-                onChange={(e) =>
-                  set({
-                    neighborhoods:
-                      e.target.value.trim() === ''
-                        ? undefined
-                        : e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                  })
-                }
+                placeholder="Russafa, Benimaclet, Carrer de Cullera…"
+                value={areasText}
+                onChange={(e) => setAreasText(e.target.value)}
               />
             </label>
             <label className="wide">
@@ -104,18 +111,39 @@ export function FilterPanel({ filters, onChange }: Props) {
               <input
                 type="text"
                 placeholder="terrace, garage…"
-                value={(draft.keywords ?? []).join(', ')}
-                onChange={(e) =>
-                  set({
-                    keywords:
-                      e.target.value.trim() === ''
-                        ? undefined
-                        : e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                  })
-                }
+                value={kwText}
+                onChange={(e) => setKwText(e.target.value)}
               />
             </label>
           </div>
+          {sourcesAvailable.length > 0 && (
+            <div className="adjust-sources">
+              <span className="adjust-sources-label">Sources:</span>
+              {sourcesAvailable.map((s) => {
+                const selected = new Set(draft.sources ?? sourcesAvailable);
+                const checked = selected.has(s);
+                return (
+                  <label key={s}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        if (e.target.checked) selected.add(s);
+                        else selected.delete(s);
+                        set({
+                          sources:
+                            selected.size === 0 || selected.size === sourcesAvailable.length
+                              ? undefined
+                              : [...selected],
+                        });
+                      }}
+                    />
+                    {s}
+                  </label>
+                );
+              })}
+            </div>
+          )}
           <div className="adjust-checks">
             <label>
               <input
@@ -154,7 +182,7 @@ export function FilterPanel({ filters, onChange }: Props) {
             <button
               className="btn btn-primary"
               onClick={() => {
-                onChange(draft);
+                onChange({ ...draft, neighborhoods: parseList(areasText), keywords: parseList(kwText) });
                 setOpen(false);
               }}
             >

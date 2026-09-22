@@ -1002,6 +1002,143 @@ select {
   color: #b3261e;
 }
 
+/* ---------- map view ---------- */
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.display-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.display-toggle button {
+  border: none;
+  background: var(--card);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.display-toggle button.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.map-view {
+  position: relative;
+  z-index: 0;
+  height: calc(100vh - 330px);
+  min-height: 440px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.map-chip-wrap {
+  background: transparent;
+  border: none;
+}
+
+.map-chip {
+  display: inline-block;
+  transform: translate(-50%, -100%);
+  background: #fff;
+  border: 2px solid var(--accent);
+  color: var(--accent-deep);
+  font-weight: 800;
+  font-size: 11.5px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.map-chip-approx {
+  border-style: dashed;
+  background: #fffdf4;
+  color: #7a6a2f;
+  border-color: #c9b458;
+}
+
+.map-chip-flag {
+  border-color: #b3261e;
+  color: #b3261e;
+  background: #fdecea;
+}
+
+.map-chip-gem {
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.map-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.map-popup-price {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.map-popup-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.map-popup-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-popup-flags {
+  color: #b3261e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.map-popup-loc {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+/* ---------- adjust: sources ---------- */
+.adjust-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+}
+
+.adjust-sources-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.adjust-sources label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* ---------- load more & skeletons ---------- */
 .load-more {
   display: flex;

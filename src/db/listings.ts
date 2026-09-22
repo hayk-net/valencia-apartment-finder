@@ -343,9 +343,14 @@ const AI_SELECT = `l.*, a.gem_score AS ai_score, a.verdict AS ai_verdict, a.pros
 export function searchListings(req: SearchRequest): { items: Listing[]; total: number } {
   const db = getDb();
   const { where, params } = buildWhere(req.filters ?? {});
-  const limit = Math.min(req.limit ?? 60, 200);
+  const limit = Math.min(req.limit ?? 60, req.compact ? 1200 : 200);
   const offset = req.offset ?? 0;
   const baselines = computeBaselines();
+  const finish = (items: Listing[], total: number) => {
+    if (req.compact) for (const l of items) l.description = null;
+    else attachPriceDrops(items);
+    return { items, total };
+  };
 
   // "Gems first" is a computed ranking (AI score, else the value/quality
   // heuristic) — rank the whole matching set in JS, then paginate
@@ -361,9 +366,7 @@ export function searchListings(req: SearchRequest): { items: Listing[]; total: n
       return { l, score: l.ai ? l.ai.score : heuristicGemScore(l) };
     });
     scored.sort(compareGems);
-    const page = scored.slice(offset, offset + limit).map((x) => x.l);
-    attachPriceDrops(page);
-    return { items: page, total: scored.length };
+    return finish(scored.slice(offset, offset + limit).map((x) => x.l), scored.length);
   }
 
   const orderBy = SORTS[req.sort ?? 'newest'] ?? SORTS.newest;
@@ -382,8 +385,7 @@ export function searchListings(req: SearchRequest): { items: Listing[]; total: n
     l.valuePct = valuePct(baselines, l);
     return l;
   });
-  attachPriceDrops(items);
-  return { items, total };
+  return finish(items, total);
 }
 
 export function countMatching(f: Filters, newSince?: string | null): { total: number; fresh: number } {

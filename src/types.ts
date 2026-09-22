@@ -146,6 +146,8 @@ export interface SearchRequest {
   sort?: SortKey;
   limit?: number;
   offset?: number;
+  /** map mode: allows up to ~1200 results but strips heavy fields (description) */
+  compact?: boolean;
 }
 
 export interface RefreshSummary {

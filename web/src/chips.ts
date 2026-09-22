@@ -51,6 +51,9 @@ export function filtersToChips(f: Filters): Chip[] {
   if (f.futureOnly) chips.push({ key: 'future', label: '🚧 sobre plano / en construcción' });
   for (const n of f.neighborhoods ?? []) chips.push({ key: `area:${n}`, label: n });
   for (const k of f.keywords ?? []) chips.push({ key: `kw:${k}`, label: k });
+  if (f.sources && f.sources.length > 0) {
+    chips.push({ key: 'sources', label: `source: ${f.sources.join(' + ')}` });
+  }
   return chips;
 }
 
@@ -75,6 +78,7 @@ export function removeChip(f: Filters, key: string): Filters {
   else if (key === 'resale') delete next.resaleOnly;
   else if (key === 'topfloor') delete next.topFloorOnly;
   else if (key === 'future') delete next.futureOnly;
+  else if (key === 'sources') delete next.sources;
   else if (key.startsWith('area:')) {
     next.neighborhoods = (next.neighborhoods ?? []).filter((n) => n !== key.slice(5));
     if (next.neighborhoods.length === 0) delete next.neighborhoods;

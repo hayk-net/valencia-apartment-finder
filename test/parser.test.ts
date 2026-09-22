@@ -83,6 +83,16 @@ describe('parseWithRules', () => {
     expect(parseWithRules('3 bed in Russafa').futureOnly).toBeUndefined();
   });
 
+  it('filters by source name', () => {
+    expect(parseWithRules('show only fotocasa listings').sources).toEqual(['fotocasa']);
+    expect(parseWithRules('metrovacesa 3 bed under 350k').sources).toEqual(['metrovacesa']);
+  });
+
+  it('treats unrecognized plain text as a location search', () => {
+    expect(parseWithRules('Carrer de Cullera').neighborhoods).toEqual(['Carrer de Cullera']);
+    expect(parseWithRules('la creu del grau').neighborhoods).toEqual(['La Creu del Grau']); // now in dictionary
+  });
+
   it('returns empty filters for chatter', () => {
     const f = parseWithRules('show me everything you have');
     expect(Object.keys(f)).toHaveLength(0);
